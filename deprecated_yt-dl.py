@@ -42,13 +42,13 @@ def labels(label_q, args):
 
         labels = []
         video_data = {}
-        if len(label_ids):
-            for id in label_ids:
-                try:
-                    id = id.replace("\"", '').lstrip().rstrip()
-                    labels.append(ontology[id])
-                except KeyError:
-                    continue
+        # if len(label_ids):
+        #     for id in label_ids:
+        #         try:
+        #             id = id.replace("\"", '').lstrip().rstrip()
+        #             labels.append(ontology[id])
+        #         except KeyError:
+        #             continue
         video_data["labels"] = labels
         video_data["id"] = ytid
         if metadata:
@@ -121,10 +121,10 @@ if __name__ == '__main__':
     parser.add_argument('--domain', type=str, default='', help='domain of remote servers')
     parser.add_argument('--hostnames', type=str, default='', help='hostnames of remote servers')
     
-    parser.add_argument('--tmp', type=str, default='', help='temporary storage')
-    parser.add_argument('--out', type=str, default='', help='storage location')
+    parser.add_argument('--tmp', type=str, default='./tmp', help='temporary storage')
+    parser.add_argument('--out', type=str, default='./out', help='storage location')
 
-    parser.add_argument('--exp-dir', type=str, default='', help='directory for output files')
+    parser.add_argument('--exp-dir', type=str, default='./', help='directory for output files')
 
     args = parser.parse_args()
 
@@ -143,10 +143,10 @@ if __name__ == '__main__':
     with open('%s/out.log' % (exp_dir), 'w+') as f:
         f.truncate(0)
         
-    tmp = json.load(open(ontology_json, 'r'))
-    ontology = {}
-    for i in range(len(tmp)):
-        ontology[tmp[i]['id']] = tmp[i]['name']
+    # tmp = json.load(open(ontology_json, 'r'))
+    # ontology = {}
+    # for i in range(len(tmp)):
+    #     ontology[tmp[i]['id']] = tmp[i]['name']
 
     q = mp.Queue()
     postprocess_q = mp.Queue()
@@ -155,13 +155,13 @@ if __name__ == '__main__':
     workers = []
     hosts = []
 
-    with open(args.hostnames, "r") as f:
-        for line in f:
-            if isOpen("%s.%s" % (line.strip(), domain), "22"):
-                hosts.append(line.strip())
+    # with open(args.hostnames, "r") as f:
+    #     for line in f:
+    #         if isOpen("%s.%s" % (line.strip(), domain), "22"):
+    #             hosts.append(line.strip())
 
-    os.system("ssh -q -o StrictHostKeyChecking=no %s@%s.%s \"mkdir ~/AudioSet/\"" % (user, selectHost(hosts, args), domain))
-    os.system("scp downloader.py %s@%s.%s:~/AudioSet/downloader.py" % (user, selectHost(hosts, args), domain))
+    # os.system("ssh -q -o StrictHostKeyChecking=no %s@%s.%s \"mkdir ~/AudioSet/\"" % (user, selectHost(hosts, args), domain))
+    # os.system("scp downloader.py %s@%s.%s:~/AudioSet/downloader.py" % (user, selectHost(hosts, args), domain))
 
     for i in range(num_proxies):
         workers.append(Process(target=child, args=(q, postprocess_q, i, args)))
@@ -183,15 +183,15 @@ if __name__ == '__main__':
             if i < 3:
                 continue
 
-            ytid = row[0]
-            start = float(row[1])
-            end = float(row[2])
+            ytid = row[1]
+            start = float(row[2])
+            end = float(row[3])
             duration = end - start
-            label_ids = row[3:]
-            host = selectHost(hosts, args)
+            label_ids = row[4:]
+            # host = selectHost(hosts, args)
 
             if not os.path.exists("%s/%s.mkv" % (tmp, ytid)):
-                q.put((ytid, start, duration, label_ids, host))
+                q.put((ytid, start, duration, label_ids))
 
     for i in range(num_proxies):
         q.put(("?", None, None, None, None))    
